@@ -1,0 +1,787 @@
+Upload Video
+Use this API to upload your video to MAVI! Once the video is uploaded, it enters the MAVI video processing pipeline, and you can query the status of video processing at any time. Additionally, by providing a callback URI in the request body, MAVI can automatically notify you about the status, saving you hassle of waiting in front your screen!
+
+Prerequisites
+You’re familiar with the concepts described on the Platform overview page.
+You have created a MAVI API key.
+The videos must meet the following requirements to ensure successful encoding process:
+Video and audio formats: The video files must be encoded in h264, h265, vp9 or hevc.
+Audio track: If you intend to use audio transcription feature, the video you are uploading must contain an audio track.
+Host URL
+https://mavi-backend.openinterx.com
+Endpoint
+POST /api/serve/video/upload
+
+Request Example
+import requests  
+headers = {"Authorization": "<API_KEY>"}  # API key  
+
+# Video file details  
+data = {  
+    "file": ("<MY_VIDEO_NAME>", open("<VIDEO_FILE_PATH>", "rb"), "video/mp4")  
+}  
+
+# Optional callback URL for task status notifications  
+params = {"callBackUri": "<YOUR_CALLBACK_URI>"}  
+
+response = requests.post(  
+    "https://mavi-backend.openinterx.com/api/serve/video/upload",  
+    files=data,  
+    params=params,  
+    headers=headers  
+)  
+
+print(response.json())  
+
+
+Replace API_KEY in the code above with your actual API key, MY_VIDEO_NAME with your video's name (including the file extension, e.g., .mp4), VIDEO_FILE_PATH with the path to your video file, and YOUR_CALLBACK_URI with your public callback URL. Ensure that the callback URL is publicly accessible, as the resolution results will be sent to this address via a POST request with the following request body: Replace API_KEY in the code above with your actual API key, MY_VIDEO_NAME with your video's name (including the file extension, e.g., .mp4), VIDEO_FILE_PATH with the path to your video file, and YOUR_CALLBACK_URI with your public callback URL. Ensure that the callback URL is publicly accessible, as the resolution results will be sent to this address via a POST request with the following request body:
+
+{
+  "videoNo": "mavi_video_554046065381212160",
+  "clientId": "d7a7427b502df6c8e31de003675b7b77",
+  "status": "PARSE"
+}
+
+The callback request body includes the following fields:
+
+videoNo: The unique video number.
+clientId: Identifies the client that is being used to upload the video.
+status: The processing status of the video.
+The status field can have one of the following values:
+
+"PARSE" – The video is being processed.
+"UNPARSE" – The video has not been processed.
+"FAIL" – The video processing failed.
+Request Body
+file: ""
+
+Request Parameters
+Name	Location	Type	Required	Description
+callBackUri	query	string	No	Callback URI to notify on successful parsing
+Authorization	header	string	Yes	Authorization API key (if required)
+body	body	object	Yes	Request payload
+» file	body	string (binary)	Yes	Video file to upload
+Response Example
+Status code 200
+
+{
+  "code": "string",
+  "msg": "string",
+  "data": {
+    "videoNo": "string",
+    "videoName": "string",
+    "videoStatus": "string",
+    "uploadTime": "string"
+  }
+}
+
+Response Structure
+Name	Type	Required	Description
+code	string	Yes	Status code
+msg	string	Yes	Message
+data	object	Yes	Data object
+» videoNo	string	Yes	Video identification number
+» videoName	string	Yes	Name of the video
+» videoStatus	string	Yes	Status of the video
+» uploadTime	string	Yes	Video upload timestamp
+Note: The callBackUri field will actively notify you of the task status after the video upload is complete and the parsing task is finished.
+
+Search
+MAVI retains videos like human memory by pre-indexing uploaded content. When needed, this stored context is retrieved agentically, enabling the vision-language model to reason effectively. By integrating all available information—visual content, audio, text, and metadata—MAVI constructs a knowledge graph for a comprehensive and deep understanding of videos.
+
+human memory
+
+Search Capabilities
+Search through metadata – Filter and retrieve videos based on their metadata.
+Search video - Perform semantic search across all videos or a specified set to find the most relevant ones.
+Search clip – Conduct precise semantic searches for specific clips across all videos or within a designated set.
+Language Limitations
+Currently, search only supports prompt in English. Please ensure your query parameters are in English.
+Chinese, French, Spanish, and other languages are not supported.
+
+Search Video Metadata
+MAVI stores metadata of uploaded videos to simplify developers' workflows. Developers can retrieve the metadata for all videos at once or flexibly fetch a subset of video metadata by using filtering parameters in their requests.
+
+Prerequisites
+You have created a MAVI API key.
+Host URL
+https://mavi-backend.openinterx.com
+Endpoint
+GET /api/serve/video/searchDB
+
+Request Example
+import requests  
+
+headers = {"Authorization": "<API_KEY>"}  # API key  
+
+# Uncomment the following line to apply filters:  
+# This filter retrieves parsed videos uploaded between timestamps 1740995860114 and 1740995860115,  
+# returning up to 100 results on the first page.  
+# params = {"startTime": 1740995860114, "endTime": 1740995860115, "videoStatus": "PARSE", "page": 1, "pageSize": 100}  
+
+response = requests.get(  
+    "https://mavi-backend.openinterx.com/api/serve/video/searchDB",  
+    # params=params,  
+    headers=headers  
+)  
+
+print(response.json())  
+
+
+Replace API_KEY in the code above with your actual API key.
+
+You can add filter conditions to the params, with the following available parameters:
+
+startTime (ms): Timestamp of the uploaded video (start time).
+endTime (ms): Timestamp of the uploaded video (end time).
+videoStatus (PARSE, UNPARSE, FAIL): The processing status of the video.
+page: The page number for pagination — i.e. which range of results to retrieve
+pageSize: The number of elements per page.
+Request Parameters
+Name	Location	Type	Required	Description
+startTime	query	number	No	timesstamp (ms)
+endTime	query	number	No	timesstamp (ms)
+videoStatus	query	string	No	PARSE, UNPARSE, FAIL
+page	query	number	No	none
+pageSize	query	number	No	Default 20; max 200
+Authorization	header	string	Yes	Authentication token
+Response Example
+Status code 200
+
+{
+  "code": "string",
+  "msg": "string",
+  "data": {
+    "page": 0,
+    "current": 0,
+    "total": 0,
+    "pageSize": 0,
+    "videoData": [
+      {
+        "videoNo": "string",
+        "videoName": "string",
+        "videoStatus": "string",
+        "uploadTime": "string",
+      }
+    ]
+  }
+}
+
+Response Result
+Status code	Status code msg	Description	Data
+200	OK	none	Inline
+Response Structure
+Status code 200
+
+Name	Type	Required	Restriction	Description
+code	string	true	none	none
+msg	string	true	none	none
+data	object	true	none	none
+» page	number	false	none	total number of pages
+» current	number	true	none	current page number
+» total	number	true	none	total number of records
+» pageSize	number	true	none	number of elements in the page
+» videoData	[object]	true	none	JSON data
+»» videoNo	string	true	none	video id
+»» videoName	string	true	none	video name
+»» videoStatus	string	true	none	video status
+»» uploadTime	string	true	none	upload timestamp(ms)
+
+Filtering
+The endpoints that return lists of items support filtering.
+
+Prerequisites
+You have created a MAVI API key.
+Example
+This example demonstrates how to filter uploaded videos within the date range from March 3, 2025, 09:57 (1740995860114) to March 10, 2025, 09:57 (1741600632000), and only include videos that have been successfully parsed (PARSE status).
+
+import requests  
+
+headers = {"Authorization": "<API_KEY>"}  # API key  
+params = {  
+    "startTime": 1740995860114,  
+    "endTime": 1741600632000,  
+    "videoStatus": "PARSE"  
+}  
+
+response = requests.get("https://mavi-backend.openinterx.com/api/serve/video/searchDB",  
+                        params=params,  
+                        headers=headers)  
+
+print(response.json())  
+
+
+Pagination
+Endpoints that return a list of items support pagination. You can manage pagination using the following parameters:
+
+page – The page number to retrieve (default: 1).
+pageSize – The number of items per page (default: 20, maximum: 200).
+Prerequisites
+You have created a MAVI API key.
+Examples
+When calling the Search Metadata API, you can specify page and pageSize parameters to control pagination. The example below sets pageSize to 30 and retrieves page number 2, returning results from 31 to 60.
+
+import requests  
+
+headers = {"Authorization": "<YOUR_APP_KEY>"}  # API key  
+params = {"page": 2, "pageSize": 30}  
+
+response = requests.get("https://mavi-backend.openinterx.com/api/serve/video/searchDB",  
+                        params=params,  
+                        headers=headers)  
+
+print(response.json())  
+
+
+Search Video
+Using a natural language query, this API will search through all processed videos and ranks the results within milliseconds. MAVI retrieves and ranks videos based on visual information in a manner similar to human perception. With this API, developers can access the most relevant videos from their entire library.
+
+Prerequisites
+You have created a MAVI API key.
+At least one video has been uploaded to MAVI and is currently in the PARSE status.
+Host URL
+https://mavi-backend.openinterx.com
+POST /api/serve/video/searchAI
+
+Request Example
+import requests  
+
+headers = {"Authorization": "<API_KEY>"}  # API key  
+data = {  
+    "searchValue": "<YOUR_PROMPT>"  # The search query  
+}  
+
+response = requests.post(  
+    "https://mavi-backend.openinterx.com/api/serve/video/searchAI",  
+    headers=headers,  
+    json=data  
+)  
+
+print(response.json())  
+
+
+Replace API_KEY in the code above with your actual API key and YOUR_PROMPT with your search query. You can search for relevant videos you've uploaded using natural language.
+
+Request Body
+{
+  "searchValue": "string"
+}
+
+Request Parameters
+Name	Location	Type	Required	Description
+Authorization	header	string	Yes	authorization API key
+searchValue	body	string	Yes	natural language prompt
+Response Example
+Status code 200
+
+{
+  "code": "string",
+  "msg": "string",
+  "data": {
+    "videos": [
+      {
+        "videoNo": "string",
+        "videoName": "string",
+        "videoStatus": "string",
+        "uploadTime": "string"
+      }
+    ]
+  }
+}
+
+Response Result
+Status code	Status code msg	Description	Data
+200	OK	none	Inline
+Response Structure
+Status code 200
+
+Name	Type	Required	Restriction	Description
+code	string	true	none	response code
+msg	string	true	none	message with response code
+data	object	true	none	JSON data
+» videos	[object]	false	none	JSON data
+»» videoNo	string	true	none	video number
+»» videoName	string	false	none	video name
+»» videoStatus	string	false	none	video status
+»» uploadTime	string	false	none	upload timestamp(ms)
+
+Search Key Clip
+While the Search-Video API retrieves the most relevant videos, this API identifies and ranks the most relevant clips within one or multiple videos. The output is sorted by the relevance of the clips. With this API, developers can quickly pinpoint moments of interest across all uploaded videos in just milliseconds.
+
+Prerequisites
+You have created a MAVI API key.
+At least one video has been uploaded to MAVI and is currently in the PARSE status.
+Host URL
+https://mavi-backend.openinterx.com
+POST /api/serve/video/searchVideoFragment
+
+Request Example
+import requests  
+
+headers = {"Authorization": "<API_KEY>"}  # API key  
+data = {  
+    "videoNos": ["<video_no>", "video_no", ...],  # List of specific video IDs (you need at least 1 video_no to do the search)  
+    "searchValue": "<your prompt>"  # The search query  
+}  
+
+response = requests.post(  
+    "https://mavi-backend.openinterx.com/api/serve/video/searchVideoFragment",  
+    headers=headers,  
+    json=data  
+)  
+
+print(response.json())  
+
+
+Request Body
+{
+  "videoNos": [],
+  "searchValue": "string"
+}
+
+Request Parameters
+Name	Location	Type	Required	Description
+Authorization	header	string	Yes	authorization API key
+videoNos	body	[string]	Yes	list of video IDs to search from (max 50 for free tier)
+searchValue	body	string	Yes	search prompt
+Response Example
+{
+  "code": "string",
+  "msg": "string",
+  "data": {
+    "videos": [
+      {
+        "videoNo": "string",
+        "videoName": "string",
+        "videoStatus": "string",
+        "uploadTime": "string",
+        "duration": "string",
+        "fragmentStartTime": "int",
+        "fragmentEndTime": "int"
+      }
+    ]
+  }
+}
+
+Response Result
+Status code	Status code msg	Description	Data
+200	OK	none	Inline
+Response Structure
+Status code 200
+
+Name	Type	Required	Restriction	Description
+code	string	true	none	response code
+msg	string	true	none	message with response code
+data	object	true	none	JSON data
+» videos	[object]	true	none	JSON data
+»» videoNo	string	false	none	video number
+»» videoName	string	false	none	video name/title
+»» videoStatus	string	false	none	video processing status
+»» uploadTime	string	false	none	upload timestamp(ms)
+»» duration	string	false	none	duration of the video(seconds)
+»» fragmentStartTime	string	true	none	video clip start time (s)
+»» fragmentEndTime	string	true	none	video clip end time(s)
+
+Video Chat
+Developer could interact with an LLM AI assistant based on the context of one or multiple videos. By simply providing the videoNos, developers can request the LLM to analyze, summarize, annotate, and more for all uploaded videos. Additionally, this API supports streaming these responses to minimize latency during response generation.
+
+Prerequisites
+You have created a MAVI API key.
+At least one video has been uploaded to MAVI and is currently in the PARSE status.
+Language Limitations
+Currently, only English searches are supported. Please ensure your query parameters are in English.
+Chinese, French, Spanish, and other languages are not supported.
+Host URL
+https://mavi-backend.openinterx.com
+POST /api/serve/video/chat
+
+Request Example
+import requests  
+
+headers = {"Authorization": "<API_KEY>"}  # API key  
+
+data = {  
+    "videoNos": <list of videoNos>,  # List of video IDs to chat about  
+    "message": "<your prompt>",  # User query or prompt  
+    "history": [],  # Chat history (leave empty for new conversations)  
+    "stream": False  # Set to True for streaming responses  
+}  
+
+response = requests.post(  
+    "https://mavi-backend.openinterx.com/api/serve/video/chat",  
+    headers=headers,  
+    json=data  
+)  
+
+print(response.text)
+
+
+Request Body
+{
+  "videoNos": [
+    "string"
+  ],
+  "message": "string",
+  "history": [
+    {
+      "robot": "string",
+      "user": "string"
+    }
+  ],
+  "stream": true
+}
+
+Request Parameters
+Name	Location	Type	Required	Description
+Authorization	header	string	Yes	authorization API key
+videoNos	body	[string]	Yes	list of video numbers
+message	body	string	Yes	natural language prompt
+history	body	[object]	No	list of JSON
+» robot	body	string	Yes	historical LLM response
+» user	body	string	Yes	historical message sent to LLM
+stream	body	boolean	Yes	whether to stream the response
+Response Example
+Status code 200
+
+{
+  "code": "string",
+  "msg": "string",
+  "data": {
+    "msg": "string"
+  }
+}
+
+Response Result
+Status code	Status code msg	Description	Data
+200	OK	none	Inline
+Response Structure
+Status code 200
+
+Name	Type	Required	Restriction	Description
+code	string	true	none	response code
+msg	string	true	none	message with response code
+data	object	true	none	JSON data
+» msg	string	true	none	message returned by LLM
+
+Video Chat Prompt Examples
+To help developers better understand how to interact with Mavi's Chat API, we’ve provided some common example questions. You can refer to the examples below to ask questions to the Chat API and get the answers you need.
+
+Example Questions:
+▶️ Olympics: Rio Replay: Men's 400m Sprint Final
+
+chat example
+
+Example Questions
+Below are sample questions and answers for testing the Mavi Chat API. Use these as templates to send queries to the API.
+
+Q：Summary: Generate summaries of these videos
+
+A：Here are the summaries of the videos:Video 1: This video features the men's 400-meter race, highlighting top athletes like Van Dijk, Matthew Hudson-Smith, Karani James, and LeSean Merritt. Van Dijk wins with a record-breaking time of 43.03,setting a new world record. Karani James and LeSean Merritt secure silver and bronze, respectively. The victory is celebrated as a historic moment for South Africa, with commentators praising Van Dijk's performance and Usain Bolt congratulating him.
+
+Q：Editing Suggestions：Give me editing suggestions for these videos, from the aspects of content structure, screen shots, rhythm, and audience experience,in details
+
+A：Here are some editing suggestions for the video:
+
+Content Structure:
+
+Opening Hook: Start with the exciting moment of Van Dijk breaking away from the pack (around 0:03:05). This immediately grabs the viewer's attention. Then, rewind to the beginning to build the context.
+Athlete Introductions: Condense the athlete introductions. Focus on Van Dijk, Karani James, and LeSean Merritt, highlighting their past achievements and what's at stake for them in this race.
+Emphasize the Record: Visually highlight the world record being broken. Use graphics to show Michael Johnson's previous record and how Van Dijk's time surpasses it.
+Bolt's Recognition: Expand on the moment with Usain Bolt. Include slow-motion replays of their hug and Bolt's words of encouragement.
+Screenshots:
+
+Close-ups: Use close-up shots of the athletes' faces during the race to convey their determination and exertion.
+Wide Shots: Incorporate wide shots of the stadium to capture the atmosphere and the scale of the event.
+Slow Motion: Use slow motion during key moments, such as the start of the race and Van Dijk's final push, to heighten the drama.
+Reaction Shots: Include reaction shots of the crowd and the other athletes as Van Dijk crosses the finish line.
+Rhythm:
+
+Build-up: Increase the tempo of the music and the frequency of cuts as the race progresses, creating a sense of urgency.
+Dramatic Pause: Use a brief pause or silence after Van Dijk breaks the record to let the moment sink in.
+Pace Variation: Vary the pace of the video to keep the audience engaged. Alternate between fast-paced action shots and slower, more reflective moments.
+Audience Experience:
+
+Context: Provide context for viewers unfamiliar with the sport or the athletes. Briefly explain the significance of the race and the world record.
+Emotion: Focus on the emotional impact of the event. Show the joy of Van Dijk, the disappointment of his competitors, and the excitement of the crowd.
+Sound Design: Use sound effects to enhance the viewing experience. Include the roar of the crowd, the pounding of the athletes' feet, and the sound of the finish line buzzer.
+Call to Action: End the video with a call to action, such as encouraging viewers to share their thoughts on the race or to learn more about the athletes.
+Q：Highlights：Find the highlights of these videos and give timestamps
+
+A：Here are the highlights of the video, with timestamps:
+
+Athlete Introductions: 00:00:31-00:00:37, 00:00:50-00:01:26
+The Start: 00:02:31-00:02:35
+Van Dijk Takes the Lead: 00:02:58-00:03:00
+Van Dijk Wins and Breaks the World Record: 00:03:05-00:03:19
+Usain Bolt Congratulates Van Dijk: 00:06:08-00:06:19
+Commentary on Van Dijk's Performance: 00:03:34-00:03:42, 00:04:48-00:04:52, 00:05:15-00:05:21, 00:05:58-00:06:06
+Q：Chapterize：Divide these videos into chapters with timestamps, and the chapters have titles and content descriptions
+
+A：Here's a breakdown of the video into chapters:
+
+Chapter 1: Introduction (0:00:00 - 0:00:31)
+
+Content: This chapter sets the stage for the men's 400 meters race, highlighting its significance as a prelude to Usain Bolt's main event. It introduces the race as a potentially thrilling contest featuring some of the greatest 400-meter runners of the last decade.
+Chapter 2: Athlete Spotlight (0:00:31 - 0:02:20)
+
+Content: This section introduces the key athletes participating in the race, including Van Dijk, Matthew Hudson-Smith, Karate James, LeSean Merritt, Raylon Tapley, Marcel Cedinho, Ali Khamis, and Karamo Sibanda. It details their achievements, personal bests, and what's at stake for each of them in the competition.
+Chapter 3: The Race Begins (0:02:20 - 0:03:05)
+
+Content: This chapter captures the start of the race, with a focus on Van Dijk's quick start from the outside lane. It describes the positions of other runners such as Karani James, Matthew Hudson-Smith, and LeSean Merritt as they pursue Van Dijk.
+Chapter 4: Van Dijk's Historic Victory (0:03:05 - 0:03:42)
+
+Content: This section highlights Van Dijk's unexpected and dominant victory in the race. It emphasizes the magnitude of his win and the breaking of Michael Johnson's world record.
+Chapter 5: Reactions and Analysis (0:03:42 - 0:04:52)
+
+Content: This chapter captures the immediate reactions to Van Dijk's performance, including the commentators' astonishment and the anticipation of celebrations in South Africa. It further analyzes Van Dijk's strategy and the exceptional nature of his achievement.
+Chapter 6: The Significance of the Race (0:04:52 - 0:06:41)
+
+Content: This section reflects on the overall quality of the race, acknowledging the strong performances of Karani James and LeSean Merritt despite Van Dijk's dominance. It also touches on Usain Bolt's recognition of Van Dijk's potential and the future of athletics after Bolt's eventual retirement.
+Q：Hashtage & Topics：Generate hashtags and video titles for videos
+
+A：Here are some title and hashtag suggestions:
+
+Video Titles:
+
+Van Dijk SHATTERS World Record! Unbelievable 400m Olympic Victory
+History Made: Van Dijk's Record-Breaking 400m Run
+From South Africa to the World: Van Dijk's Golden Moment
+Unstoppable: Van Dijk's Dominant 400m Olympic Win
+Bolt Was Right! Van Dijk's 400m World Record Performance
+Hashtags:
+
+#Olympics
+#Athletics
+#400m
+#WorldRecord
+#VanDijk
+#SouthAfrica
+#UsainBolt
+#KaraniJames
+#LeSeanMerritt
+#OlympicGames
+#TrackandField
+#HistoryMade
+#GoldMedal
+#Beijing
+Q：Tiktok：Write titles, descriptions, and tags suitable for TikTok for these videos to attract more people to watch them.
+
+A：Okay, here are some title, description, and tag suggestions for TikTok, designed to maximize views:
+
+Video 1: Van Dijk's Record-Breaking 400m
+
+Title 1: 🤯WORLD RECORD SHATTERED! You won't BELIEVE this race! #Olympics
+Title 2: UNSEEN SPEED! 400m Record BROKEN! #TrackandField
+Title 3: Bolt KNEW! This runner SHOCKED the world! #Athletics
+Description: Watch Van Dijk make history in the 400m! This race was INSANE! Usain Bolt saw this coming!
+Tags: #Olympics #Athletics #400m #WorldRecord #VanDijk #SouthAfrica #UsainBolt #TrackandField #Sports #Running #RecordBreaking #Inspiration #Motivation #FYP #Viral #Shocking #Unbelievable
+Q：What type of audience are these videos suitable for?
+
+A：The video is suitable for a broad audience, including sports enthusiasts, fans of athletics, and those interested in Olympic history. It is also suitable for viewers who appreciate stories of athletic achievement and record-breaking performances.
+
+Transcription video
+Transcription API converts visual and autio context of the video into text representations. You could transcribe an uploaded vidoe in two ways:
+
+AUDIO: Transcribing the video's audio content into text.
+VIDEO: Transcribing the video's visual content into text.
+Prerequisites
+You have created a MAVI API key.
+At least one video has been uploaded to MAVI and is currently in the PARSE status.
+Host URL
+https://mavi-backend.openinterx.com
+Submit Transcription Task
+You can submit a transcription task through this interface with the following options:
+
+Choose between AUDIO or VIDEO transcription.
+Specify a callback address to receive the transcription results automatically.
+Opt not to use a callback—in this case, you can retrieve the transcription results using the query interface.
+POST /api/serve/video/subTranscription
+
+Request Example
+import requests  
+
+headers = {"Authorization": "<API_KEY>"}  # API key  
+
+data = {  
+    "videoNo": "<VIDEO_NO>",  # The video ID to transcribe  
+    "type": "AUDIO/VIDEO",  # Specify "AUDIO" for audio-only, "VIDEO" for video-only, or "AUDIO/VIDEO" for both  
+    "callBackUri": "<CALLBACK>"  # Optional callback URL for status notifications  
+}  
+
+response = requests.post(  
+    "https://mavi-backend.openinterx.com/api/serve/video/subTranscription",  
+    headers=headers,  
+    json=data  
+)  
+
+print(response.json())  
+
+
+Replace the placeholders in the code above with your actual values:
+
+API_KEY: Your API key.
+VIDEO_NO: The unique video number.
+AUDIO or VIDEO: The transcription type (choose one).
+CALLBACK: (Optional) A publicly accessible URL endpoint,
+Request Body
+{
+  "videoNo": "string",
+  "type": "string",
+  "callBackUri": "string"
+}
+
+Name	Location	Type	Required	Description
+Authorization	header	string	Yes	authorization API key
+videoNo	body	string	Yes	video number
+type	body	string	Yes	transcription type: AUDIO, VIDEO
+callBackUri	body	string	No	callback address
+Response Example
+Status code 200
+
+{
+  "code": "string",
+  "msg": "string",
+  "data": {
+    "taskNo": "string"
+  }
+}
+
+Name	Type	Required	Description
+code	string	true	response code
+msg	string	true	message with response code
+data	object	true	JSON data
+» taskNo	string	true	task number
+GET Transcription Content
+You can get the transcription content of the video through this interface, you need to provide the video number.
+
+GET /api/serve/video/getTranscription
+
+Request Example
+import requests  
+
+headers = {"Authorization": "<API_KEY>"}  # API key  
+
+# Task number associated with the transcription request  
+params = {"taskNo": "<TASK_NO>"}  
+
+response = requests.get(  
+    "https://mavi-backend.openinterx.com/api/serve/video/getTranscription",  
+    headers=headers,  
+    params=params  
+)  
+
+print(response.json())  
+
+
+Replace the API_KEY in the above code as your API key, TASK_NO as your task number, you can get the transcription content of the video through the task number.
+
+Request Parameters
+Name	Location	Type	Required	Description
+Authorization	header	string	Yes	authorization token
+taskNo	query	string	Yes	task number
+Response Example
+If you provide a callback URL when submitting the task, a mesage containing content inside data in the following example will be sent to callback URL automatically to notify the status of the task.
+
+Status code 200
+
+{
+  "code": "string",
+  "msg": "string",
+  "data": {
+    "status": "FINISH",
+    "type": "AUDIO",
+    "videoNo": "videoNo_fd30e4c3700c",
+    "taskNo": "taskNo_0a3f11298b9e",
+    "transcriptions": [
+      {
+        "id": 0,
+        "startTime": 0,
+        "endTime": 0,
+        "content": "content_0e5150607a47"
+      }
+    ]
+  }
+}
+
+Name	Type	Required	Description
+code	string	true	response code
+msg	string	true	message with response code
+data	object	true	JSON data
+» taskNo	string	true	task number
+» status	string	true	transcription status: FINISH, UNFINISHED
+» type	string	true	transcription type
+» videoNo	string	true	video number
+» transcriptions	array	true	transcription content
+»» id	number	true	transcription number
+»» startTime	number	true	start time
+»» endTime	number	true	end time
+»» content	string	true	transcription content
+
+Delete Videos
+To free up cloud storage or remove unused videos from the MAVI database, developers can call this API to delete all raw and derived data associated with specified videoNos in the request. Once the API is successfully completed, no data related to deleted videos will be retained.
+
+Prerequisites
+You have created a MAVI API key.
+Host URL
+https://mavi-backend.openinterx.com
+DELETE /api/serve/video/delete
+
+Rate limit: max 500 videos each call.
+Request Example
+import requests  
+
+headers = {"Authorization": "<API_KEY>"}  # API key  
+
+# List of video IDs to delete  
+data = ["<list of videoNos>"]  
+
+response = requests.delete(  
+    "https://mavi-backend.openinterx.com/api/serve/video/delete",  
+    headers=headers,  
+    json=data  
+)  
+
+print(response.json())  
+
+
+Request Body
+[
+    "string"
+  ]
+
+Request Parameters
+Name	Location	Type	Required	Description
+Authorization	header	string	Yes	Authorization API key
+body	body	object	No	none
+» videoNos	body	[string]	Yes	list of video numbers
+Response Example
+Status code 200
+
+{
+  "code": "string",
+  "msg": "string"
+}
+
+Response Result
+Status code	Status code msg	Description	Data
+200	OK	none	Inline
+Response Structure
+Status code 200
+
+Name	Type	Required	Restriction	Description
+code	string	true	none	response code
+msg	string	true	none	message with response code
+
+Code
+Here are some common response code that developers may encounter when using the MAVI-API.
+
+Response code
+code	Description	solution
+0000	success	The API completes successfully
+0001/ 0003	parameter is incorrect	Check the correctness of the parameters.
+0429	Request is too busy	The system is too busy. Please check if the API call limit has been exceeded or if the system is currently under high load.
+0409	Duplicate requests are not allowed.	Some API does not allow duplicate operations such as deleteing a video
+0403	Developer account has been disabled, please contact us to find out the reason	Contact us to find out the reason.
+0401	Authorization is invalid or incorrect. Please check the correctness of the Authorization.	Try to re-acquire the token or re-authenticate.
+VideoStatus enum
+The VideoStatus enum has three states: PARSE, UNPARSE and PARSE_ERROR, representing success, pending, and failure, respectively. Failure to upload a video is very unlikely. If unfortunately, an PARSE_ERROR occurs, please examine the video encoding format with our provided failure information in the API response. If the issue cannot be resolved, please contact us. We will always be there to improve our platform's developing experience.
