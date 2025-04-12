@@ -153,7 +153,9 @@ if search_query:
                                     with st.expander(f"Video: {video.get('videoName', 'Unknown')}"):
                                         st.write(f"**Video ID:** `{video.get('videoNo', 'N/A')}`")
                                         st.write(f"**Status:** {video.get('videoStatus', 'N/A')}")
-                                        st.write(f"**Upload Time:** {video.get('uploadTime', 'N/A')}")
+                                        upload_timestamp = int(video.get('uploadTime', 0))
+                                        upload_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(upload_timestamp/1000))
+                                        st.write(f"**Upload Time:** {upload_time}")
                             else:
                                 # Handle clip search results
                                 videos = result["data"].get("videos", [])
@@ -257,8 +259,26 @@ if search_query:
                                                 
                                                 # タイムラインの位置を視覚的に表示
                                                 st.markdown(f"<div style='margin-bottom: 5px;'>Full video: {total_duration}s</div>", unsafe_allow_html=True)
-                                                st.progress(timeline_start/100)  # クリップの開始位置
-                                                st.progress(timeline_width/100)  # クリップの長さ
+                                                
+                                                # 空のプログレスバーを表示（全体の長さを表現）
+                                                empty_progress = st.empty()
+                                                empty_progress.progress(0.0)
+                                                
+                                                # クリップの区間を表示するプログレスバー
+                                                # カスタムスタイルでプログレスバーの位置と長さを設定
+                                                progress_html = f"""
+                                                <div style="position: relative; margin-top: -40px;">
+                                                    <div style="
+                                                        position: absolute;
+                                                        left: {timeline_start}%;
+                                                        width: {timeline_width}%;
+                                                        height: 6px;
+                                                        background-color: #0078D4;
+                                                        border-radius: 3px;
+                                                    "></div>
+                                                </div>
+                                                """
+                                                st.markdown(progress_html, unsafe_allow_html=True)
                                                 
                                             except (ValueError, TypeError) as e:
                                                 st.error(f"Error processing video data: {str(e)}")
