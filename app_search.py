@@ -86,7 +86,7 @@ with col2:
     search_type = st.selectbox(
         "Search Type",
         ["keyword", "clip"],
-        index=0,
+        index=1,
         help="Choose between keyword search or clip search"
     )
 
