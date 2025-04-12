@@ -74,6 +74,29 @@ def get_clip_transcription(video_no, start_time, end_time, transcriptions):
     
     return clip_transcriptions
 
+def fetch_video_numbers():
+    """Fetch parsed video numbers from MAVI API"""
+    headers = {"Authorization": MAVI_API_KEY}
+    try:
+        response = requests.get(MAVI_SEARCH_DB_URL, headers=headers)
+        
+        if response.status_code == 200:
+            data = response.json()
+            if data.get("code") == "0000" and "videoData" in data.get("data", {}):
+                videos = data["data"]["videoData"]
+                # Return video numbers with names for better display
+                return [(f"{video['videoNo']} - {video.get('videoName', 'Unnamed')}", video['videoNo']) 
+                        for video in videos if video["videoStatus"] == "PARSE"]
+            else:
+                st.error(f"Error fetching videos: {data.get('msg', 'Unknown error')}")
+                return []
+        else:
+            st.error(f"HTTP Error: {response.status_code}")
+            return []
+    except Exception as e:
+        st.error(f"Failed to fetch videos: {str(e)}")
+        return []
+
 # ビデオを取得する関数を修正
 def get_video_content(video_no):
     url = f"https://mavi-backend.openinterx.com/api/serve/video/get/{video_no}"
@@ -433,7 +456,19 @@ else:
 st.subheader("📝 Step 3: Get Video Transcription")
 
 # トランスクリプションを取得するための入力フィールドとボタン
-video_no = st.text_input("Enter Video No", value="mavi_video_566050240969445376")
+video_options = fetch_video_numbers()
+if video_options:
+    selected_option = st.selectbox(
+        "Select Video",
+        options=[option[0] for option in video_options],
+        index=0
+    )
+    # Get the actual video number from the selected option
+    video_no = [option[1] for option in video_options if option[0] == selected_option][0]
+else:
+    video_no = st.text_input("Enter Video No", value="mavi_video_566050240969445376")
+    st.warning("No parsed videos available. Please enter video number manually.")
+
 transcription_type = st.selectbox(
     "Transcription Type",
     ["AUDIO", "VIDEO", "AUDIO/VIDEO"],
