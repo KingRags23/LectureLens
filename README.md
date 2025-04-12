@@ -1,4 +1,4 @@
-# 🎓 SmartLecture
+# 🎓 LectureLens
 
 Smart Video Search, Transcription & Clip Analysis
 
