@@ -61,6 +61,19 @@ if uploaded_file:
             st.error("❌ Upload failed.")
             st.json(result)
 
+# 関数定義を使用箇所の前に移動
+def get_clip_transcription(video_no, start_time, end_time, transcriptions):
+    clip_transcriptions = []
+    for trans in transcriptions:
+        trans_start = float(trans.get('startTime', 0))
+        trans_end = float(trans.get('endTime', 0))
+        
+        # クリップの時間範囲と重なるトランスクリプションを抽出
+        if (trans_start <= end_time and trans_end >= start_time):
+            clip_transcriptions.append(trans)
+    
+    return clip_transcriptions
+
 st.subheader("🔍 Step 2: Search in Your Video")
 
 # Create two columns for the search interface
@@ -283,6 +296,73 @@ if search_query:
                                             except (ValueError, TypeError) as e:
                                                 st.error(f"Error processing video data: {str(e)}")
                                                 st.json(video)  # Display raw video data for debugging
+
+                                            # トランスクリプションを取得
+                                            headers = {
+                                                "Authorization": MAVI_API_KEY,
+                                                "Content-Type": "application/json"
+                                            }
+                                            
+                                            # トランスクリプションタスクを送信
+                                            sub_data = {
+                                                "videoNo": video.get('videoNo'),
+                                                "type": "AUDIO"  # または "AUDIO/VIDEO" for both
+                                            }
+                                            
+                                            sub_response = requests.post(
+                                                MAVI_SUB_TRANSCRIPTION_URL,
+                                                json=sub_data,
+                                                headers=headers
+                                            )
+                                            
+                                            if sub_response.status_code == 200:
+                                                sub_result = sub_response.json()
+                                                if sub_result.get("code") == "0000":
+                                                    task_no = sub_result["data"]["taskNo"]
+                                                    
+                                                    # トランスクリプション結果を取得
+                                                    params = {"taskNo": task_no}
+                                                    get_response = requests.get(
+                                                        MAVI_GET_TRANSCRIPTION_URL,
+                                                        headers=headers,
+                                                        params=params
+                                                    )
+                                                    
+                                                    if get_response.status_code == 200:
+                                                        get_result = get_response.json()
+                                                        if get_result.get("code") == "0000":
+                                                            transcription_data = get_result.get("data", {})
+                                                            
+                                                            if transcription_data.get('status') == 'FINISH':
+                                                                start_time = float(video.get('fragmentStartTime', 0))
+                                                                end_time = float(video.get('fragmentEndTime', 0))
+                                                                
+                                                                # クリップの時間範囲のトランスクリプションを取得
+                                                                clip_transcriptions = get_clip_transcription(
+                                                                    video.get('videoNo'),
+                                                                    start_time,
+                                                                    end_time,
+                                                                    transcription_data.get('transcriptions', [])
+                                                                )
+                                                                
+                                                                # トランスクリプションを表示
+                                                                if clip_transcriptions:
+                                                                    st.subheader("Clip Transcription")
+                                                                    for trans in clip_transcriptions:
+                                                                        trans_start = float(trans.get('startTime', 0))
+                                                                        trans_end = float(trans.get('endTime', 0))
+                                                                        st.markdown(f"**[{trans_start:.2f}s - {trans_end:.2f}s]**")
+                                                                        st.write(trans.get('content', ''))
+                                                                else:
+                                                                    st.info("No transcription available for this clip")
+                                                            else:
+                                                                st.warning("Transcription process not finished")
+                                                        else:
+                                                            st.error(f"❌ Error getting transcription: {get_result.get('msg', 'Unknown error')}")
+                                                    else:
+                                                        st.error(f"❌ HTTP Error while getting transcription: {get_response.status_code}")
+                                            else:
+                                                st.error(f"❌ HTTP Error while submitting task: {sub_response.status_code}")
                     else:
                         st.error(f"❌ API Error: {result.get('msg', 'Unknown error')}")
                         with st.expander("Error Details", expanded=True):
