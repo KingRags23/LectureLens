@@ -297,9 +297,44 @@ if st.button("Get Transcription"):
                             if transcriptions:
                                 content = content_placeholder.container()
                                 content.subheader("Transcription Content:")
-                                for trans in transcriptions:
-                                    with content.expander(f"Segment {trans.get('id', 'N/A')} ({trans.get('startTime', 0)}s - {trans.get('endTime', 0)}s)"):
+                                
+                                def format_timestamp(seconds):
+                                    try:
+                                        # Convert seconds to float first
+                                        seconds_float = float(seconds)
+                                        hours = int(seconds_float // 3600)
+                                        minutes = int((seconds_float % 3600) // 60)
+                                        seconds = int(seconds_float % 60)
+                                        if hours > 0:
+                                            return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+                                        return f"{minutes:02d}:{seconds:02d}"
+                                    except (ValueError, TypeError):
+                                        return "00:00"  # Return default value if conversion fails
+                                
+                                # Create a formatted transcript with timestamps
+                                for idx, trans in enumerate(transcriptions):
+                                    start_time = format_timestamp(trans.get('startTime', 0))
+                                    end_time = format_timestamp(trans.get('endTime', 0))
+                                    
+                                    with content.expander(f"Segment {idx + 1}"):
+                                        # Display timestamp and content
+                                        content.markdown(f"**Time:** [{start_time} - {end_time}]")
+                                        content.markdown("---")  # Separator
                                         content.write(trans.get("content", "No content available"))
+                                
+                                # Add a download button for the full transcript
+                                full_transcript = "\n\n".join([
+                                    f"[{format_timestamp(t.get('startTime', 0))} - {format_timestamp(t.get('endTime', 0))}]\n{t.get('content', '')}"
+                                    for t in transcriptions
+                                ])
+                                
+                                content.download_button(
+                                    "📥 Download Full Transcript",
+                                    full_transcript,
+                                    "transcript.txt",
+                                    "Download the complete transcript with timestamps"
+                                )
+                                
                                 # 完了したら終了
                                 if transcription_data.get('status') == 'FINISH':
                                     break
