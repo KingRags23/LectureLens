@@ -2,6 +2,8 @@
 
 Smart Video Search, Transcription & Clip Analysis
 
+![LectureLens Logo](images/LectureLens.png)
+
 ![SmartLecture Demo](images/demo.gif)
 
 ## Overview
