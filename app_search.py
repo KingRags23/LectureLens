@@ -139,7 +139,7 @@ if search_query:
             
             try:
                 result = response.json()
-                st.write("Response body:", result)
+                # st.write("Response body:", result)  # この行をコメントアウトまたは削除
                 
                 if response.status_code == 200:
                     if result.get("code") == "0000":  # Success code
@@ -156,46 +156,113 @@ if search_query:
                                         st.write(f"**Upload Time:** {video.get('uploadTime', 'N/A')}")
                             else:
                                 # Handle clip search results
-                                for video in result["data"].get("videos", []):
-                                    with st.expander(f"Clip from {video.get('videoName', 'Unknown')}"):
-                                        # Video identification
-                                        st.write(f"**Video ID:** `{video.get('videoNo', 'N/A')}`")
+                                videos = result["data"].get("videos", [])
+                                
+                                # クリップをマージする関数
+                                def should_merge_clips(clip1, clip2, threshold=5):
+                                    start1 = float(clip1.get('fragmentStartTime', 0))
+                                    end1 = float(clip1.get('fragmentEndTime', 0))
+                                    start2 = float(clip2.get('fragmentStartTime', 0))
+                                    end2 = float(clip2.get('fragmentEndTime', 0))
+                                    
+                                    # 重複または近接（threshold秒以内）している場合はマージ
+                                    return start2 <= end1 + threshold
+
+                                def merge_clips(clips):
+                                    if not clips:
+                                        return []
                                         
-                                        # Convert string values to float for calculations
-                                        try:
-                                            start_time = float(video.get('fragmentStartTime', 0))
-                                            end_time = float(video.get('fragmentEndTime', 0))
-                                            total_duration = float(video.get('duration', 0))
+                                    # 開始時間でソート
+                                    sorted_clips = sorted(clips, key=lambda x: float(x.get('fragmentStartTime', 0)))
+                                    merged = []
+                                    current_group = [sorted_clips[0]]
+                                    
+                                    for clip in sorted_clips[1:]:
+                                        if should_merge_clips(current_group[-1], clip):
+                                            current_group.append(clip)
+                                        else:
+                                            # 新しいグループを作成
+                                            if current_group:
+                                                # グループ内の最小開始時間と最大終了時間を取得
+                                                start = min(float(c.get('fragmentStartTime', 0)) for c in current_group)
+                                                end = max(float(c.get('fragmentEndTime', 0)) for c in current_group)
+                                                
+                                                # マージされたクリップを作成
+                                                merged_clip = dict(current_group[0])
+                                                merged_clip['fragmentStartTime'] = start
+                                                merged_clip['fragmentEndTime'] = end
+                                                merged.append(merged_clip)
                                             
-                                            # Timing information
-                                            col1, col2, col3 = st.columns(3)
-                                            with col1:
-                                                st.write(f"**Start Time:** {start_time}s")
-                                            with col2:
-                                                st.write(f"**End Time:** {end_time}s")
-                                            with col3:
-                                                st.write(f"**Total Duration:** {total_duration}s")
+                                            current_group = [clip]
+                                    
+                                    # 最後のグループを処理
+                                    if current_group:
+                                        start = min(float(c.get('fragmentStartTime', 0)) for c in current_group)
+                                        end = max(float(c.get('fragmentEndTime', 0)) for c in current_group)
+                                        merged_clip = dict(current_group[0])
+                                        merged_clip['fragmentStartTime'] = start
+                                        merged_clip['fragmentEndTime'] = end
+                                        merged.append(merged_clip)
+                                    
+                                    return merged
+                                
+                                # 同じvideoNoのクリップをグループ化
+                                video_groups = {}
+                                for video in videos:
+                                    video_no = video.get('videoNo')
+                                    if video_no not in video_groups:
+                                        video_groups[video_no] = []
+                                    video_groups[video_no].append(video)
+                                
+                                # 各グループ内でクリップをマージ
+                                for video_no, group in video_groups.items():
+                                    merged_clips = merge_clips(group)
+                                    
+                                    # マージされたクリップを表示
+                                    for video in merged_clips:
+                                        with st.expander(f"Clip from {video.get('videoName', 'Unknown')}"):
+                                            # 以下は既存のコード
+                                            st.write(f"**Video ID:** `{video.get('videoNo', 'N/A')}`")
                                             
-                                            # Calculate and display clip duration
-                                            clip_duration = end_time - start_time
-                                            st.write(f"**Clip Duration:** {clip_duration}s")
-                                            
-                                            # Additional metadata
-                                            upload_timestamp = int(video.get('uploadTime', 0))
-                                            upload_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(upload_timestamp/1000))
-                                            st.write(f"**Upload Time:** {upload_time}")
-                                            st.write(f"**Status:** {video.get('videoStatus', 'N/A')}")
-                                            
-                                            # Add a visual timeline representation
-                                            progress_text = "Video Timeline"
-                                            timeline_width = end_time/total_duration * 100
-                                            timeline_start = start_time/total_duration * 100
-                                            st.write(progress_text)
-                                            st.progress(timeline_width/100)
-                                            
-                                        except (ValueError, TypeError) as e:
-                                            st.error(f"Error processing video data: {str(e)}")
-                                            st.json(video)  # Display raw video data for debugging
+                                            # Convert string values to float for calculations
+                                            try:
+                                                start_time = float(video.get('fragmentStartTime', 0))
+                                                end_time = float(video.get('fragmentEndTime', 0))
+                                                total_duration = float(video.get('duration', 0))
+                                                
+                                                # Timing information
+                                                col1, col2, col3 = st.columns(3)
+                                                with col1:
+                                                    st.write(f"**Start Time:** {start_time}s")
+                                                with col2:
+                                                    st.write(f"**End Time:** {end_time}s")
+                                                with col3:
+                                                    st.write(f"**Total Duration:** {total_duration}s")
+                                                
+                                                # Calculate and display clip duration
+                                                clip_duration = end_time - start_time
+                                                st.write(f"**Clip Duration:** {clip_duration}s")
+                                                
+                                                # Additional metadata
+                                                upload_timestamp = int(video.get('uploadTime', 0))
+                                                upload_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(upload_timestamp/1000))
+                                                st.write(f"**Upload Time:** {upload_time}")
+                                                st.write(f"**Status:** {video.get('videoStatus', 'N/A')}")
+                                                
+                                                # Add a visual timeline representation
+                                                progress_text = "Video Timeline"
+                                                timeline_width = (end_time - start_time) / total_duration * 100
+                                                timeline_start = start_time / total_duration * 100
+                                                st.write(progress_text)
+                                                
+                                                # タイムラインの位置を視覚的に表示
+                                                st.markdown(f"<div style='margin-bottom: 5px;'>Full video: {total_duration}s</div>", unsafe_allow_html=True)
+                                                st.progress(timeline_start/100)  # クリップの開始位置
+                                                st.progress(timeline_width/100)  # クリップの長さ
+                                                
+                                            except (ValueError, TypeError) as e:
+                                                st.error(f"Error processing video data: {str(e)}")
+                                                st.json(video)  # Display raw video data for debugging
                     else:
                         st.error(f"❌ API Error: {result.get('msg', 'Unknown error')}")
                         with st.expander("Error Details", expanded=True):
