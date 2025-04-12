@@ -2,8 +2,6 @@ import streamlit as st
 import requests
 import os
 import time
-import cv2
-import numpy as np
 import yaml
 
 # 🔐 API Keys
@@ -20,7 +18,7 @@ MAVI_SUB_TRANSCRIPTION_URL = "https://mavi-backend.openinterx.com/api/serve/vide
 MAVI_GET_TRANSCRIPTION_URL = "https://mavi-backend.openinterx.com/api/serve/video/getTranscription"
 
 st.set_page_config("SmartLecture", layout="wide")
-st.title("🎓 SmartLecture – Real-Time Confusion Helper")
+st.markdown("# 🎓 SmartLecture <small>– Smart Video Search, Transcription & Clip Analysis</small>", unsafe_allow_html=True)
 
 st.subheader("📥 Step 1: Upload Your Lecture Video")
 
