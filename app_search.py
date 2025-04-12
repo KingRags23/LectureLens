@@ -2,6 +2,9 @@ import streamlit as st
 import requests
 import os
 import time
+import cv2
+import numpy as np
+import yaml
 
 # 🔐 API Keys
 MAVI_API_KEY = "sk-7cd38706a5e62c9da49f8014ad69d346"
@@ -99,15 +102,26 @@ def fetch_video_numbers():
 
 # ビデオを取得する関数を修正
 def get_video_content(video_no):
+    """Get video content either from local file or API"""
+    # First try to get from local file
+    try:
+        with open('video_mapping.yaml', 'r') as f:
+            video_map = yaml.safe_load(f)
+            if video_no in video_map['videos']:
+                file_path = video_map['videos'][video_no]
+                if os.path.exists(file_path):
+                    with open(file_path, 'rb') as f:
+                        return f.read()
+    except Exception as e:
+        st.warning(f"Local file not found: {str(e)}")
+    
+    # If local file not found, try API
     url = f"https://mavi-backend.openinterx.com/api/serve/video/get/{video_no}"
     headers = {
         "Authorization": MAVI_API_KEY
     }
     try:
         response = requests.get(url, headers=headers)
-        st.write("Response Headers:", dict(response.headers))
-        st.write("Response Status:", response.status_code)
-        st.write("Content Type:", response.headers.get('content-type'))
         if response.status_code == 200:
             return response.content
         else:
@@ -116,6 +130,20 @@ def get_video_content(video_no):
     except Exception as e:
         st.error(f"Error getting video: {str(e)}")
         return None
+
+def process_video_clip(video_content, start_time, end_time, video_no):
+    """Process video to display original video with specified start time"""
+    try:
+        # Save the video content to a temporary file
+        temp_input = f"temp_input_{video_no}.mp4"
+        with open(temp_input, "wb") as f:
+            f.write(video_content)
+        
+        # Return the original video path and start time
+        return temp_input, start_time
+    except Exception as e:
+        st.error(f"Error processing video: {str(e)}")
+        return None, None
 
 st.subheader("🔍 Step 2: Search in Your Video")
 
@@ -411,14 +439,21 @@ if search_query:
                                             try:
                                                 video_content = get_video_content(video.get('videoNo'))
                                                 if video_content:
-                                                    # 一時ファイルとして保存
-                                                    temp_video_file = f"temp_clip_{video.get('videoNo')}.mp4"
-                                                    with open(temp_video_file, "wb") as f:
-                                                        f.write(video_content)
-                                                    # 一時ファイルを表示
-                                                    st.video(temp_video_file)
-                                                    # 使用後は一時ファイルを削除
-                                                    os.remove(temp_video_file)
+                                                    # クリップ処理を実行
+                                                    start_time = float(video.get('fragmentStartTime', 0))
+                                                    end_time = float(video.get('fragmentEndTime', 0))
+                                                    video_path, start_time = process_video_clip(video_content, start_time, end_time, video.get('videoNo'))
+                                                    
+                                                    if video_path and os.path.exists(video_path):
+                                                        # オリジナルのビデオを表示し、開始位置を指定
+                                                        st.video(video_path, start_time=int(start_time))
+                                                        # 使用後は一時ファイルを削除
+                                                        try:
+                                                            os.remove(video_path)
+                                                        except:
+                                                            pass  # Ignore cleanup errors
+                                                    else:
+                                                        st.error("Failed to find video file")
                                             except Exception as e:
                                                 st.error(f"Failed to display video: {str(e)}")
                     else:

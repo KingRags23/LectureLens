@@ -1,0 +1,6 @@
+# Video ID to file path mapping
+videos:
+  mavi_video_566077511323226112: "videos/videoplayback.mov"
+  mavi_video_566077464250552320: "videos/Calculus - The limit of a function.mp4"
+  # Add more mappings as needed
+  # Format: video_id: file_path 
