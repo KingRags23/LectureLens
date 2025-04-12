@@ -74,6 +74,26 @@ def get_clip_transcription(video_no, start_time, end_time, transcriptions):
     
     return clip_transcriptions
 
+# ビデオを取得する関数を修正
+def get_video_content(video_no):
+    url = f"https://mavi-backend.openinterx.com/api/serve/video/get/{video_no}"
+    headers = {
+        "Authorization": MAVI_API_KEY
+    }
+    try:
+        response = requests.get(url, headers=headers)
+        st.write("Response Headers:", dict(response.headers))
+        st.write("Response Status:", response.status_code)
+        st.write("Content Type:", response.headers.get('content-type'))
+        if response.status_code == 200:
+            return response.content
+        else:
+            st.error(f"Failed to get video: Status code {response.status_code}")
+            return None
+    except Exception as e:
+        st.error(f"Error getting video: {str(e)}")
+        return None
+
 st.subheader("🔍 Step 2: Search in Your Video")
 
 # Create two columns for the search interface
@@ -363,6 +383,21 @@ if search_query:
                                                         st.error(f"❌ HTTP Error while getting transcription: {get_response.status_code}")
                                             else:
                                                 st.error(f"❌ HTTP Error while submitting task: {sub_response.status_code}")
+
+                                            # ビデオを表示
+                                            try:
+                                                video_content = get_video_content(video.get('videoNo'))
+                                                if video_content:
+                                                    # 一時ファイルとして保存
+                                                    temp_video_file = f"temp_clip_{video.get('videoNo')}.mp4"
+                                                    with open(temp_video_file, "wb") as f:
+                                                        f.write(video_content)
+                                                    # 一時ファイルを表示
+                                                    st.video(temp_video_file)
+                                                    # 使用後は一時ファイルを削除
+                                                    os.remove(temp_video_file)
+                                            except Exception as e:
+                                                st.error(f"Failed to display video: {str(e)}")
                     else:
                         st.error(f"❌ API Error: {result.get('msg', 'Unknown error')}")
                         with st.expander("Error Details", expanded=True):
