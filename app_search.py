@@ -98,15 +98,42 @@ if search_query:
                     headers=headers
                 )
             else:  # clip search
-                # Use searchVideoFragment endpoint for clip search
-                search_data = {
-                    "searchValue": search_query
-                }
-                response = requests.post(
-                    MAVI_SEARCH_FRAGMENT_URL,
-                    json=search_data,
+                # First, get all videos from searchDB
+                db_response = requests.get(
+                    MAVI_SEARCH_DB_URL,
                     headers=headers
                 )
+                
+                if db_response.status_code == 200:
+                    db_result = db_response.json()
+                    if db_result.get("code") == "0000":
+                        # Extract video numbers from parsed videos
+                        video_nos = [
+                            video["videoNo"] 
+                            for video in db_result["data"]["videoData"]
+                            if video["videoStatus"] == "PARSE"
+                        ]
+                        
+                        if not video_nos:
+                            st.warning("No parsed videos found in the repository")
+                            st.stop()
+                            
+                        # Use searchVideoFragment endpoint for clip search
+                        search_data = {
+                            "videoNos": video_nos,
+                            "searchValue": search_query
+                        }
+                        response = requests.post(
+                            MAVI_SEARCH_FRAGMENT_URL,
+                            json=search_data,
+                            headers=headers
+                        )
+                    else:
+                        st.error(f"❌ Error getting videos: {db_result.get('msg', 'Unknown error')}")
+                        st.stop()
+                else:
+                    st.error(f"❌ HTTP Error while getting videos: {db_response.status_code}")
+                    st.stop()
             
             st.write(f"Response status: {response.status_code}")
             
@@ -124,15 +151,51 @@ if search_query:
                                 # Handle video search results
                                 for video in result["data"].get("videos", []):
                                     with st.expander(f"Video: {video.get('videoName', 'Unknown')}"):
+                                        st.write(f"**Video ID:** `{video.get('videoNo', 'N/A')}`")
                                         st.write(f"**Status:** {video.get('videoStatus', 'N/A')}")
                                         st.write(f"**Upload Time:** {video.get('uploadTime', 'N/A')}")
                             else:
                                 # Handle clip search results
                                 for video in result["data"].get("videos", []):
                                     with st.expander(f"Clip from {video.get('videoName', 'Unknown')}"):
-                                        st.write(f"**Start Time:** {video.get('fragmentStartTime', 'N/A')}s")
-                                        st.write(f"**End Time:** {video.get('fragmentEndTime', 'N/A')}s")
-                                        st.write(f"**Duration:** {video.get('duration', 'N/A')}s")
+                                        # Video identification
+                                        st.write(f"**Video ID:** `{video.get('videoNo', 'N/A')}`")
+                                        
+                                        # Convert string values to float for calculations
+                                        try:
+                                            start_time = float(video.get('fragmentStartTime', 0))
+                                            end_time = float(video.get('fragmentEndTime', 0))
+                                            total_duration = float(video.get('duration', 0))
+                                            
+                                            # Timing information
+                                            col1, col2, col3 = st.columns(3)
+                                            with col1:
+                                                st.write(f"**Start Time:** {start_time}s")
+                                            with col2:
+                                                st.write(f"**End Time:** {end_time}s")
+                                            with col3:
+                                                st.write(f"**Total Duration:** {total_duration}s")
+                                            
+                                            # Calculate and display clip duration
+                                            clip_duration = end_time - start_time
+                                            st.write(f"**Clip Duration:** {clip_duration}s")
+                                            
+                                            # Additional metadata
+                                            upload_timestamp = int(video.get('uploadTime', 0))
+                                            upload_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(upload_timestamp/1000))
+                                            st.write(f"**Upload Time:** {upload_time}")
+                                            st.write(f"**Status:** {video.get('videoStatus', 'N/A')}")
+                                            
+                                            # Add a visual timeline representation
+                                            progress_text = "Video Timeline"
+                                            timeline_width = end_time/total_duration * 100
+                                            timeline_start = start_time/total_duration * 100
+                                            st.write(progress_text)
+                                            st.progress(timeline_width/100)
+                                            
+                                        except (ValueError, TypeError) as e:
+                                            st.error(f"Error processing video data: {str(e)}")
+                                            st.json(video)  # Display raw video data for debugging
                     else:
                         st.error(f"❌ API Error: {result.get('msg', 'Unknown error')}")
                         with st.expander("Error Details", expanded=True):
@@ -168,7 +231,7 @@ else:
 st.subheader("📝 Step 3: Get Video Transcription")
 
 # トランスクリプションを取得するための入力フィールドとボタン
-video_no = st.text_input("Enter Video No", value="mavi_video_566043313665347584")
+video_no = st.text_input("Enter Video No", value="mavi_video_566050240969445376")
 transcription_type = st.selectbox(
     "Transcription Type",
     ["AUDIO", "VIDEO", "AUDIO/VIDEO"],
