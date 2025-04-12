@@ -32,6 +32,10 @@ SmartLecture is a powerful tool that helps you analyze and search through lectur
   - Detailed metadata display
   - Smart playback controls
 
+## Presentation
+
+[View Presentation](https://docs.google.com/presentation/d/1e1Bav260A6MV7p83yX6Ec_Ne0Y2VD6x2/)
+
 ## Requirements
 
 - Python 3.8 or higher
