@@ -5,7 +5,7 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 # === CONFIGURATION ===
-MAVI_API_KEY = "sk-7cd38706a5e62c9da49f8014ad69d346"
+MAVI_API_KEY = "MAVI API KEY"
 MAVI_SEARCH_DB_URL = "https://mavi-backend.openinterx.com/api/serve/video/searchDB"
 MAVI_DELETE_VIDEO_URL = "https://mavi-backend.openinterx.com/api/serve/video/delete"
 
