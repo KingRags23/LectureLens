@@ -3,7 +3,7 @@ import requests
 import os
 
 # 🔐 API Keys
-MAVI_API_KEY = "sk-7cd38706a5e62c9da49f8014ad69d346"
+MAVI_API_KEY = "MAVI API KEY"
 GEMINI_API_KEY = "API KEY HERE"
 
 # 🔗 Endpoints
