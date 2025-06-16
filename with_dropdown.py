@@ -4,8 +4,8 @@ import os
 import time
 
 # 🔐 API Keys
-MAVI_API_KEY = "sk-7cd38706a5e62c9da49f8014ad69d346"
-GEMINI_API_KEY = "AIzaSyAbGbaVPBR_2L3NzxAPWmIf2iwquZvv7yA"
+MAVI_API_KEY = "MAVI API KEY"
+GEMINI_API_KEY = "GEMINI API KEY"
 
 # 🔗 Endpoints
 MAVI_UPLOAD_URL = "https://mavi-backend.openinterx.com/api/serve/video/upload"
